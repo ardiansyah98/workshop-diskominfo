@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Table, Select, message, Card, Row, Col } from "antd";
+import { Table, Select, message, Card, Row, Col, Input } from "antd";
 import {
   PieChart,
   Pie,
@@ -22,6 +22,11 @@ export default function AdminDashboard() {
   const [chartData, setChartData] = useState([]);
   const [updatingStatus, setUpdatingStatus] = useState({}); // Track which submission is being updated
   const [refreshing, setRefreshing] = useState(false); // Track refresh loading state
+  const [searchText, setSearchText] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState("desc");
+  // Local input state for search (apply on Enter only)
+  const [filterSearch, setFilterSearch] = useState("");
 
   const COLORS = ["#ffc107", "#1890ff", "#52c41a", "#ff4d4f"];
 
@@ -49,27 +54,22 @@ export default function AdminDashboard() {
     }
 
     try {
-      // Ultra-aggressive cache bypass
-      const timestamp = Date.now();
-      const random = Math.random().toString(36).substring(7);
-      const forceRefresh = Date.now();
-      const cacheBuster = Math.random().toString(36).substring(7);
+      const params = new URLSearchParams();
+      if (searchText) params.set("q", searchText);
+      if (sortBy) params.set("sortBy", sortBy);
+      if (sortOrder) params.set("sortOrder", sortOrder.toUpperCase());
+      if (statusFilter && statusFilter !== "ALL") params.set("status", statusFilter);
+      // cache buster
+      params.set("_", String(Date.now()));
 
-      const response = await fetch(
-        `/api/admin/submissions?t=${timestamp}&r=${random}&force=${forceRefresh}&cb=${cacheBuster}&_=${Date.now()}`,
-        {
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
-            Pragma: "no-cache",
-            "X-Requested-With": "XMLHttpRequest",
-            "X-Force-Refresh": "true",
-            "X-Cache-Buster": `${timestamp}-${random}`,
-            "X-Request-Time": `${Date.now()}`,
-          },
-          // Force fresh request
-          cache: "no-store",
-        }
-      );
+      const response = await fetch(`/api/admin/submissions?${params.toString()}`, {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+          Pragma: "no-cache",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        cache: "no-store",
+      });
       const data = await response.json();
 
       if (response.ok) {
@@ -88,6 +88,27 @@ export default function AdminDashboard() {
       if (showLoading) {
         setRefreshing(false);
       }
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchSubmissions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // On-change fetchers for dropdowns
+  useEffect(() => {
+    // Skip initial mount fetch; already handled above
+    fetchSubmissions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, sortBy, sortOrder]);
+
+  const applySearchOnEnter = (e) => {
+    if (e.key === "Enter") {
+      setSearchText(filterSearch);
+      // Fetch after state updates in next tick
+      setTimeout(() => fetchSubmissions(true), 0);
     }
   };
 
@@ -358,10 +379,7 @@ export default function AdminDashboard() {
     },
   ];
 
-  const filteredSubmissions =
-    statusFilter === "ALL"
-      ? submissions
-      : submissions.filter((sub) => sub.status === statusFilter);
+  // Server-side filtering is applied via query params
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -739,31 +757,45 @@ export default function AdminDashboard() {
         {/* Table */}
         <Card title="Daftar Pengajuan">
           <div className="mb-4">
-            <Select
-              value={statusFilter}
-              onChange={setStatusFilter}
-              style={{ width: "100%", maxWidth: 200 }}
-              placeholder="Filter by status"
-              disabled={loading || Object.values(updatingStatus).some(Boolean)}
-              loading={loading}
-            >
-              <Option value="ALL">Semua Status</Option>
-              <Option value="PENGAJUAN_BARU">Pengajuan Baru</Option>
-              <Option value="DIPROSES">Sedang Diproses</Option>
-              <Option value="SELESAI">Selesai</Option>
-              <Option value="DITOLAK">Ditolak</Option>
-            </Select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2">
+              <Input
+                allowClear
+                value={filterSearch}
+                onChange={(e) => setFilterSearch(e.target.value)}
+                onKeyDown={applySearchOnEnter}
+                placeholder="Cari nama atau email..."
+              />
+              <Select
+                value={statusFilter}
+                onChange={setStatusFilter}
+                placeholder="Filter status"
+                disabled={loading || Object.values(updatingStatus).some(Boolean)}
+                loading={loading}
+              >
+                <Option value="ALL">Semua Status</Option>
+                <Option value="PENGAJUAN_BARU">Pengajuan Baru</Option>
+                <Option value="DIPROSES">Sedang Diproses</Option>
+                <Option value="SELESAI">Selesai</Option>
+                <Option value="DITOLAK">Ditolak</Option>
+              </Select>
+              <Select value={sortBy} onChange={setSortBy}>
+                <Option value="createdAt">Urutkan: Terbaru</Option>
+                <Option value="status">Urutkan: Status</Option>
+              </Select>
+              <Select value={sortOrder} onChange={setSortOrder}>
+                <Option value="asc">Arah: Naik</Option>
+                <Option value="desc">Arah: Turun</Option>
+              </Select>
+            </div>
             {loading && (
-              <span className="ml-2 text-xs sm:text-sm text-gray-500">
-                Memuat data...
-              </span>
+              <span className="text-xs sm:text-sm text-gray-500">Memuat data...</span>
             )}
           </div>
 
           <div className="relative">
             <Table
               columns={columns}
-              dataSource={filteredSubmissions}
+              dataSource={submissions}
               rowKey="id"
               loading={loading}
               scroll={{ x: 800, y: 400 }}

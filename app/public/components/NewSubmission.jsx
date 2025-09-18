@@ -42,13 +42,67 @@ export default function NewSubmission() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    if (name === "nik") {
+      const digitsOnly = value.replace(/\D/g, "").slice(0, 16);
+      setFormData((prev) => ({ ...prev, nik: digitsOnly }));
+      // Live validation for NIK
+      if (digitsOnly.length !== 16) {
+        setErrors((prev) => ({ ...prev, nik: "NIK harus 16 digit" }));
+      } else {
+        setErrors((prev) => ({ ...prev, nik: "" }));
+      }
+      return;
+    }
+
+    if (name === "no_wa") {
+      // Allow only + and digits while typing
+      const cleaned = value.replace(/[^\d+]/g, "");
+      setFormData((prev) => ({ ...prev, no_wa: cleaned }));
+      // Do not format yet; validate lightly
+      if (!cleaned) {
+        setErrors((prev) => ({ ...prev, no_wa: "Nomor WhatsApp wajib diisi" }));
+      } else {
+        setErrors((prev) => ({ ...prev, no_wa: "" }));
+      }
+      return;
+    }
+
+    if (name === "email") {
+      const next = value;
+      setFormData((prev) => ({ ...prev, email: next }));
+      // Live email validation (required)
+      if (!next.trim()) {
+        setErrors((prev) => ({ ...prev, email: "Email wajib diisi" }));
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next)) {
+        setErrors((prev) => ({ ...prev, email: "Format email tidak valid" }));
+      } else {
+        setErrors((prev) => ({ ...prev, email: "" }));
+      }
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    if (name === "no_wa") {
+      const formatted = formatPhoneNumber(formData.no_wa);
+      setFormData((prev) => ({ ...prev, no_wa: formatted }));
+      // Validate +62 format length  +62 followed by 8-15 digits
+      if (!/^\+62\d{8,15}$/.test(formatted)) {
+        setErrors((prev) => ({
+          ...prev,
+          no_wa: "Format nomor harus +62 diikuti 8-15 digit",
+        }));
+      } else {
+        setErrors((prev) => ({ ...prev, no_wa: "" }));
+      }
     }
   };
 
@@ -67,12 +121,19 @@ export default function NewSubmission() {
       newErrors.nik = "NIK hanya boleh berisi angka";
     }
 
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (!formData.email.trim()) {
+      newErrors.email = "Email wajib diisi";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Format email tidak valid";
     }
 
     if (!formData.no_wa.trim()) {
       newErrors.no_wa = "Nomor WhatsApp wajib diisi";
+    } else {
+      const formatted = formatPhoneNumber(formData.no_wa);
+      if (!/^\+62\d{8,15}$/.test(formatted)) {
+        newErrors.no_wa = "Format nomor harus +62 diikuti 8-15 digit";
+      }
     }
 
     if (!formData.jenis_layanan) {
@@ -188,7 +249,7 @@ export default function NewSubmission() {
             htmlFor="email"
             className="block text-sm font-medium text-gray-700 mb-2"
           >
-            Email (Opsional)
+            Email *
           </label>
           <input
             type="email"
@@ -220,10 +281,11 @@ export default function NewSubmission() {
             name="no_wa"
             value={formData.no_wa}
             onChange={handleChange}
+            onBlur={handleBlur}
             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
               errors.no_wa ? "border-red-500" : "border-gray-300"
             }`}
-            placeholder="08xxxxxxxxxx (akan diformat ke +62...)"
+            placeholder="+62xxxxxxxxxx atau 08xxxxxxxxxx"
           />
           {errors.no_wa && (
             <p className="mt-1 text-sm text-red-600">{errors.no_wa}</p>

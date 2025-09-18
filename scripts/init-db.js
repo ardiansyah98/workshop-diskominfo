@@ -13,7 +13,7 @@ if (fs.existsSync(envPath)) {
 }
 
 // Function to create database if it doesn't exist
-async function createDatabaseIfNotExists(databaseUrl) {
+async function created_atabaseIfNotExists(databaseUrl) {
   try {
     // Parse the database URL to extract components
     const url = new URL(databaseUrl);
@@ -73,7 +73,7 @@ async function initDatabase() {
       console.log("📊 Attempting to use PostgreSQL from DATABASE_URL...");
 
       // Try to create database if it doesn't exist
-      await createDatabaseIfNotExists(process.env.DATABASE_URL);
+      await created_atabaseIfNotExists(process.env.DATABASE_URL);
 
       // Determine if it's local or production
       const isLocal =
@@ -209,7 +209,7 @@ async function initDatabase() {
       {
         tableName: "notification_logs",
         timestamps: true,
-        updatedAt: false, // Only track creation time
+        updated_at: false, // Only track creation time
       }
     );
 

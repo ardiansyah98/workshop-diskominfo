@@ -237,7 +237,7 @@ export default function StatusCheck() {
                 Tanggal Pengajuan
               </p>
               <p className="text-base text-gray-900">
-                {new Date(statusData.createdAt).toLocaleDateString("id-ID", {
+                {new Date(statusData.created_at).toLocaleDateString("id-ID", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
@@ -247,13 +247,13 @@ export default function StatusCheck() {
               </p>
             </div>
 
-            {statusData.updatedAt !== statusData.createdAt && (
+            {statusData.updated_at !== statusData.created_at && (
               <div>
                 <p className="text-sm font-medium text-gray-500">
                   Terakhir Diupdate
                 </p>
                 <p className="text-base text-gray-900">
-                  {new Date(statusData.updatedAt).toLocaleDateString("id-ID", {
+                  {new Date(statusData.updated_at).toLocaleDateString("id-ID", {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
