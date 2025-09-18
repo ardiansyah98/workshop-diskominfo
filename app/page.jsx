@@ -60,7 +60,7 @@ export default function Home() {
 
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>© 2025 Layanan Publik Terpadu Kabupaten Bogor</p>
-          <p className="mt-1">Workshop-Friendly System</p>
+          <p className="mt-1">Integrated System</p>
         </div>
 
       </div>
